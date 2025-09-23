@@ -1,6 +1,6 @@
 # Search-First-Agent
 
-Search Everything in Interet First
+Search Everything in Internet First
 
 ### How to start - LangGraph Studio
 
