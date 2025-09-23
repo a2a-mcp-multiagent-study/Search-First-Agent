@@ -2,16 +2,16 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 
 mcp_client = MultiServerMCPClient(
   {
-    # "yfinance": {
-    #   "command": "uv",
-    #   "args": [
-    #     "--directory",
-    #     "/Users/1113744/Projs/Personal/new-langgraph-project/src/tools",
-    #     "run",
-    #     "finance_server.py"
-    #   ],
-    #   "transport": "stdio"
-    # },
+    "yfinance": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/Users/1113744/Projs/Personal/MCP_A2A/Search-First-Agent/src/tools",
+        "run",
+        "finance_server.py"
+      ],
+      "transport": "stdio"
+    },
     "exa": {
         "command": "npx",
         "args": [
@@ -32,4 +32,5 @@ mcp_client = MultiServerMCPClient(
 
 async def get_tools():
     tools = await mcp_client.get_tools()
+    # tools_by_name = {tool.name: tool for tool in tools}
     return tools

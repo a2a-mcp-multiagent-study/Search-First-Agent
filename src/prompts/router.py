@@ -1,4 +1,3 @@
-
 SYSTEM_PROMPT = """You are a **deterministic, binary text classifier**.
 Classify a single user input into exactly **one** category:
 
