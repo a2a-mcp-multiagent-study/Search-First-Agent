@@ -9,5 +9,5 @@ class InputState(BaseModel):
 class OverallState(AgentStatePydantic, InputState):
     is_chitchat: bool = Field(default=False)
     chitchat_rationale: str = Field(default="")
-    # search_plan: dict = Field(default={})
+    search_plan: dict = Field(default={})
     

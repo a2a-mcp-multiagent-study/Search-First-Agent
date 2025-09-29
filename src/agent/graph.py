@@ -66,24 +66,42 @@ def chitchat_node(state: OverallState):
     }
 
 
-# def search_planner_node(state: OverallState):
-#     llm = ChatGoogleGenerativeAI(
-#         google_api_key=os.getenv('GOOGLE_API_KEY'),
-#         model="gemini-2.0-flash",
-#         temperature=0.65,
-#     )
+def search_planner_node(state: OverallState):
+    llm = ChatGoogleGenerativeAI(
+        google_api_key=os.getenv('GOOGLE_API_KEY'),
+        model="gemini-2.0-flash",
+        temperature=0.65,
+    )
     
-#     search_planner_prompt_builder = get_prompt_builder("planner")
-#     system_prompt, user_prompt = search_planner_prompt_builder(state.messages[-1].content)
-#     response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)])
+    search_planner_prompt_builder = get_prompt_builder("planner")
+    system_prompt, user_prompt = search_planner_prompt_builder(state.messages[-1].content)
+    response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)])
     
-#     response_json = json.loads(response.content.strip().lstrip("```json").rstrip("```").replace("\'", "\""))
+    response_json = json.loads(response.content.strip().lstrip("```json").rstrip("```").replace("\'", "\""))
     
-#     return {
-#         "search_plan": response_json,
-#         "messages": state.messages
-#     }
+    return {
+        "search_plan": response_json,
+        "messages": state.messages
+    }
 
+
+def aggregator_node(state: OverallState):
+    llm = ChatGoogleGenerativeAI(
+        google_api_key=os.getenv('GOOGLE_API_KEY'),
+        model="gemini-2.0-flash",
+        temperature=0.65,
+    )
+    
+    search_planner_prompt_builder = get_prompt_builder("planner")
+    system_prompt, user_prompt = search_planner_prompt_builder(state.messages[-1].content)
+    response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)])
+    
+    response_json = json.loads(response.content.strip().lstrip("```json").rstrip("```").replace("\'", "\""))
+    
+    return {
+        "search_plan": response_json,
+        "messages": state.messages
+    }
 
 
 async def build_agent():
@@ -94,10 +112,9 @@ async def build_agent():
         model_kwargs={"response_format": "json"}
     )    
     tools = await get_tools()
-    llm.bind_tools(tools)
     
     # memory = InMemorySaver()
-    agent = create_react_agent(
+    search_agent = create_react_agent(
         llm, 
         tools, 
         name="StockAgent",
@@ -109,17 +126,20 @@ async def build_agent():
 
     builder.add_node("router_node", router_node)
     builder.add_node("chitchat_node", chitchat_node)
-    # builder.add_node("search_planner_node", search_planner_node)
-    builder.add_node("agent", agent)
+    builder.add_node("search_planner_node", search_planner_node)
+    builder.add_node("search_agent", search_agent)
+    builder.add_node("aggregator_node", aggregator_node)
     
     builder.add_edge(START, "router_node")
     builder.add_conditional_edges("router_node", rounter, {
         "chitchat": "chitchat_node",
-        "investment": "agent"
+        "investment": "search_planner_node"
     })
     builder.add_edge("chitchat_node", END)
-    builder.add_edge("agent", END)
-    # builder.add_edge("agent", END)
+    builder.add_edge("search_planner_node", "search_agent")
+    builder.add_edge("search_agent", "aggregator_node")
+    builder.add_edge("aggregator_node", END)
+    
 
     return builder.compile()
 
