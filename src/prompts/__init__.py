@@ -1,7 +1,7 @@
 import importlib
 
 def get_prompt_builder(prompt_name):
-    prompt_lib = f"prompts.{prompt_name}"
+    prompt_lib = f"src.prompts.{prompt_name}"
     prompt_builder = getattr(importlib.import_module(prompt_lib), "build_prompts")
     return prompt_builder
                         
@@ -40,6 +40,4 @@ Iteratively call tools to satisfy the requirements. Do not over-fetch; stop when
    - Aggressive (4–5): quality 0.20, valuation 0.20, momentum 0.30, risk 0.20, portfolio_fit 0.10
 4) **Recommendation score** = clipped weighted sum ∈ [0,1], then apply hard-gate clamp if triggered.
 5) Write a crisp rationale (3–6 bullets) that **maps reasons to the score** (e.g., “cheap vs peers”, “stable margins”, “earnings in 2 days → penalty”).
-
-NOTE: You must answer in Korean.
 """

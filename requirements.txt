@@ -1,0 +1,9 @@
+a2a-sdk>=0.3.7
+langgraph-cli>=0.4.2
+langgraph-cli[inmem]
+langchain-openai>=0.3.33
+langchain-google-genai>=2.1.12
+langgraph==0.6.7
+yfinance==0.2.66
+fastmcp>=2.12.3
+langchain-mcp-adapters==0.1.10
