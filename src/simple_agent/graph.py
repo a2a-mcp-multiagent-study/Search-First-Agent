@@ -10,9 +10,10 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import create_react_agent
 
-from src.agent.state import OverallState
+from src.simple_agent.state import OverallState
 from src.tools import get_tools
-from src.prompts import get_prompt_builder
+from src.prompts import get_prompt_builder, DEFAULT_SYSTEM_PROMPT
+
 
 tools_by_name = {}
 load_dotenv()
@@ -24,8 +25,9 @@ def router_node(state: OverallState):
         openai_api_key=os.getenv('GROQ_API_KEY', 'EMPTY'),
         openai_api_base=os.getenv('GROQ_API_URL'),
         temperature=0.65,
-        response_format={"type": "json_object"}
     )
+    llm.bind(response_format={"type": "json_object"})
+
     prompt_builder = get_prompt_builder("router")
     system_prompt, user_prompt = prompt_builder(state.messages[-1].content)
     
@@ -68,59 +70,6 @@ def chitchat_node(state: OverallState):
     }
 
 
-def search_planner_node(state: OverallState):
-    llm = ChatOpenAI(
-        model=os.getenv('GROQ_MODEL_NAME'),
-        openai_api_key=os.getenv('GROQ_API_KEY', 'EMPTY'),
-        openai_api_base=os.getenv('GROQ_API_URL'),
-        temperature=0.65,
-        response_format={"type": "json_object"}
-    )
-    search_planner_prompt_builder = get_prompt_builder("planner")
-    system_prompt, user_prompt = search_planner_prompt_builder(state.messages[-1].content)
-    response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)])
-    
-    response_json = json.loads(response.content.strip().lstrip("```json").rstrip("```").replace("\'", "\""))
-    
-    return {
-        "search_plan": response_json,
-        "messages": state.messages
-    }
-
-
-def aggregator_node(state: OverallState):
-
-    print(state.search_plan)    
-    print(state.messages)
-    
-    return {
-        "messages": state.messages
-    }
-
-
-
-def post_model_hook(state: OverallState):
-    import json
-        
-    llm = ChatOpenAI(
-        model=os.getenv('GROQ_MODEL_NAME'),
-        openai_api_key=os.getenv('GROQ_API_KEY', 'EMPTY'),
-        openai_api_base=os.getenv('GROQ_API_URL'),
-        temperature=0.65
-    )
-    
-    
-    post_model_prompt_builder = get_prompt_builder("post_search")
-    system_prompt, user_prompt = post_model_prompt_builder(state)
-    
-    response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)])
-    
-    response_json = json.loads(response.content.strip().lstrip("```json").rstrip("```").replace("\'", "\""))
-    
-    return {
-        "search_result": response_json,
-    }
-    
 
 async def build_agent():
     
@@ -134,34 +83,27 @@ async def build_agent():
     tools = await get_tools()
     llm.bind_tools(tools)
     
-    search_agent_prompt_builder = get_prompt_builder("search")
-
     search_agent = create_react_agent(
         llm, 
         tools, 
         name="StockAgent",
-        prompt=search_agent_prompt_builder,
-        state_schema=OverallState,
-        post_model_hook=post_model_hook
+        prompt=DEFAULT_SYSTEM_PROMPT,
+        state_schema=OverallState
     ) 
     
     builder = StateGraph(OverallState)
 
     builder.add_node("router_node", router_node)
     builder.add_node("chitchat_node", chitchat_node)
-    builder.add_node("search_planner_node", search_planner_node)
     builder.add_node("search_agent", search_agent)
-    # builder.add_node("aggregator_node", aggregator_node)
     
     builder.add_edge(START, "router_node")
     builder.add_conditional_edges("router_node", router, {
         "chitchat": "chitchat_node",
-        "investment": "search_planner_node"
+        "investment": "search_agent"
     })
     builder.add_edge("chitchat_node", END)
-    builder.add_edge("search_planner_node", "search_agent")
     builder.add_edge("search_agent", END)
-    # builder.add_edge("aggregator_node", END)
     
 
     return builder.compile()

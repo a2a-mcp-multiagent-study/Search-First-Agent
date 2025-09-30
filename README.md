@@ -1,15 +1,28 @@
 # Search-First-Agent
 
-Search Everything in Interet First
+Search Everything in Internet First
 
-### How to start - LangGraph Studio
+-   src > simple_agent: 간단한 에이전트 (A2A wrapping 완료)
+-   src > agent: 진짜 만들고자 하는 에이전트
 
-1. .env 파일 작성
+### 환경 설정
 
-    - .env.example 참조
+0. 의존성 설치
 
-2. LangGraph Studio 실행
-    ```bash
-    uv sync             // Install packages
-    langgraph dev       // Run LangGraph Studio
-    ```
+```bash
+    uv venv --python 3.13.0
+    source .venv/bin/activate
+    uv pip install -r requirements.txt
+```
+
+1. **Langgraph Platform**을 통한 실행
+
+```bash
+    uv run langgraph dev
+```
+
+2. **A2A** 서빙
+
+```bash
+    uv run run_search_agent.py
+```
